@@ -25,8 +25,8 @@ A visual representation to help you understand the project structure and data fl
 │  │  ┌────────────────────────────────────────────────────┐  │  │
 │  │  │ models.py                                          │  │  │
 │  │  │ • User model (database schema)                     │  │  │
-│  │  │ • Fields: username, email, names, timestamps       │  │  │
-│  │  │ • Methods: get_full_name(), save()                 │  │  │
+│  │  │ • Fields: id, name, email                          │  │  │
+│  │  │ • Methods: save() with email normalization         │  │  │
 │  │  └────────────────────────────────────────────────────┘  │  │
 │  │                          ↕                                │  │
 │  │  ┌────────────────────────────────────────────────────┐  │  │
@@ -41,8 +41,8 @@ A visual representation to help you understand the project structure and data fl
 │  │  │ views.py                                           │  │  │
 │  │  │ • UserViewSet (CRUD operations)                    │  │  │
 │  │  │ • list, create, retrieve, update, destroy          │  │  │
-│  │  │ • Custom actions: activate, deactivate             │  │  │
-│  │  │ • Search and filtering                             │  │  │
+│  │  │ • Search functionality (name and email)            │  │  │
+│  │  │ • Pagination support                               │  │  │
 │  │  └────────────────────────────────────────────────────┘  │  │
 │  │                          ↕                                │  │
 │  │  ┌────────────────────────────────────────────────────┐  │  │
@@ -124,9 +124,8 @@ A visual representation to help you understand the project structure and data fl
 │ Executes query and returns:                        │
 │ {                                                   │
 │   id: 1,                                            │
-│   username: 'john_doe',                             │
-│   email: 'john@example.com',                        │
-│   ...                                               │
+│   name: 'John Doe',                                 │
+│   email: 'john@example.com'                         │
 │ }                                                   │
 └──────────────────────┬──────────────────────────────┘
                        │
@@ -136,9 +135,8 @@ A visual representation to help you understand the project structure and data fl
 │                                                     │
 │ user = User(                                        │
 │     id=1,                                           │
-│     username='john_doe',                            │
-│     email='john@example.com',                       │
-│     ...                                             │
+│     name='John Doe',                                │
+│     email='john@example.com'                        │
 │ )                                                   │
 └──────────────────────┬──────────────────────────────┘
                        │
@@ -150,12 +148,8 @@ A visual representation to help you understand the project structure and data fl
 │                                                     │
 │ {                                                   │
 │   "id": 1,                                          │
-│   "username": "john_doe",                           │
-│   "email": "john@example.com",                      │
-│   "full_name": "John Doe",  ← Computed field        │
-│   "is_active": true,                                │
-│   "created_at": "2024-01-01T12:00:00Z",             │
-│   "updated_at": "2024-01-01T12:00:00Z"              │
+│   "name": "John Doe",                               │
+│   "email": "john@example.com"                       │
 │ }                                                   │
 └──────────────────────┬──────────────────────────────┘
                        │
@@ -166,7 +160,7 @@ A visual representation to help you understand the project structure and data fl
 │ HTTP/1.1 200 OK                                     │
 │ Content-Type: application/json                      │
 │                                                     │
-│ { "id": 1, "username": "john_doe", ... }            │
+│ { "id": 1, "name": "John Doe", "email": "..." }     │
 └──────────────────────┬──────────────────────────────┘
                        │
                        ↓
@@ -186,13 +180,8 @@ A visual representation to help you understand the project structure and data fl
 │   Column     │      Type        │   Constraints     │
 ├──────────────┼──────────────────┼───────────────────┤
 │ id           │ SERIAL           │ PRIMARY KEY       │
-│ username     │ VARCHAR(150)     │ UNIQUE, NOT NULL  │
+│ name         │ VARCHAR(255)     │ NOT NULL          │
 │ email        │ VARCHAR(254)     │ UNIQUE, NOT NULL  │
-│ first_name   │ VARCHAR(100)     │                   │
-│ last_name    │ VARCHAR(100)     │                   │
-│ is_active    │ BOOLEAN          │ DEFAULT TRUE      │
-│ created_at   │ TIMESTAMP        │ AUTO              │
-│ updated_at   │ TIMESTAMP        │ AUTO              │
 └──────────────┴──────────────────┴───────────────────┘
 ```
 
@@ -214,28 +203,22 @@ http://localhost:8000/
     └── /users/                      (User Endpoints)
         │
         ├── GET     /                → List all users (paginated)
-        │                             Query params: ?search=, ?is_active=, ?page=
+        │                             Query params: ?search=, ?page=
         │
         ├── POST    /                → Create new user
-        │                             Body: {username, email, first_name, last_name}
-        │
-        ├── GET     /active_users/   → Get all active users
+        │                             Body: {name, email}
         │
         └── /{id}/                   (Single User Operations)
             │
             ├── GET     /            → Get user details
             │
             ├── PUT     /            → Update user (full)
-            │                         Body: {username, email, first_name, last_name, is_active}
+            │                         Body: {name, email}
             │
             ├── PATCH   /            → Update user (partial)
-            │                         Body: {any_field: value}
+            │                         Body: {name: value} or {email: value}
             │
-            ├── DELETE  /            → Delete user
-            │
-            ├── POST    /activate/   → Activate user
-            │
-            └── POST    /deactivate/ → Deactivate user
+            └── DELETE  /            → Delete user
 ```
 
 ## 🔀 Data Flow Diagram
@@ -249,7 +232,7 @@ http://localhost:8000/
        │
        │ POST /api/users/
        │ {
-       │   "username": "jane_doe",
+       │   "name": "Jane Smith",
        │   "email": "jane@example.com"
        │ }
        │
@@ -268,7 +251,7 @@ http://localhost:8000/
 │      UserSerializer.is_valid()              │
 │                                             │
 │  Field Validation:                          │
-│  ✓ username is unique                       │
+│  ✓ name is not empty                        │
 │  ✓ email is valid and unique                │
 │  ✓ required fields present                  │
 │                                             │
@@ -281,7 +264,7 @@ http://localhost:8000/
 │      UserSerializer.create()                │
 │                                             │
 │  validated_data = {                         │
-│    "username": "jane_doe",                  │
+│    "name": "Jane Smith",                    │
 │    "email": "jane@example.com"              │
 │  }                                          │
 │                                             │
@@ -292,9 +275,10 @@ http://localhost:8000/
 ┌─────────────────────────────────────────────┐
 │           User.save()                       │
 │                                             │
-│  1. Convert email to lowercase              │
-│  2. Generate SQL INSERT                     │
-│  3. Execute query                           │
+│  1. Trim whitespace from name               │
+│  2. Convert email to lowercase              │
+│  3. Generate SQL INSERT                     │
+│  4. Execute query                           │
 └──────────────────┬──────────────────────────┘
                    │
                    ↓
@@ -302,14 +286,10 @@ http://localhost:8000/
 │         PostgreSQL Database                 │
 │                                             │
 │  INSERT INTO users (                        │
-│    username, email, is_active,              │
-│    created_at, updated_at                   │
+│    name, email                              │
 │  ) VALUES (                                 │
-│    'jane_doe',                              │
-│    'jane@example.com',                      │
-│    true,                                    │
-│    NOW(),                                   │
-│    NOW()                                    │
+│    'Jane Smith',                            │
+│    'jane@example.com'                       │
 │  ) RETURNING id;                            │
 │                                             │
 │  Returns: id = 2                            │
@@ -321,11 +301,8 @@ http://localhost:8000/
 │                                             │
 │  user = User(                               │
 │    id=2,                                    │
-│    username='jane_doe',                     │
-│    email='jane@example.com',                │
-│    is_active=True,                          │
-│    created_at=datetime(...),                │
-│    updated_at=datetime(...)                 │
+│    name='Jane Smith',                       │
+│    email='jane@example.com'                 │
 │  )                                          │
 └──────────────────┬──────────────────────────┘
                    │
@@ -335,12 +312,8 @@ http://localhost:8000/
 │                                             │
 │  {                                          │
 │    "id": 2,                                 │
-│    "username": "jane_doe",                  │
-│    "email": "jane@example.com",             │
-│    "full_name": "jane_doe",                 │
-│    "is_active": true,                       │
-│    "created_at": "2024-01-01T12:00:00Z",    │
-│    "updated_at": "2024-01-01T12:00:00Z"     │
+│    "name": "Jane Smith",                    │
+│    "email": "jane@example.com"              │
 │  }                                          │
 └──────────────────┬──────────────────────────┘
                    │
@@ -423,9 +396,9 @@ Request Data
 ┌─────────────────────────────────────┐
 │ Custom Field Validation             │
 │                                     │
-│ • validate_username()               │
+│ • validate_name()                   │
 │ • validate_email()                  │
-│ • Check uniqueness                  │
+│ • Check uniqueness (email)          │
 └────────────┬────────────────────────┘
              │
              ↓ (all pass)
@@ -453,7 +426,7 @@ Request Data
 ## 🔍 Search & Filter Flow
 
 ```
-GET /api/users/?search=john&is_active=true
+GET /api/users/?search=john
     │
     ↓
 ┌─────────────────────────────────────┐
@@ -464,27 +437,20 @@ GET /api/users/?search=john&is_active=true
              │
              ↓
 ┌─────────────────────────────────────┐
-│ Apply is_active Filter              │
-│                                     │
-│ queryset.filter(is_active=True)     │
-└────────────┬────────────────────────┘
-             │
-             ↓
-┌─────────────────────────────────────┐
 │ Apply Search Filter                 │
 │                                     │
 │ queryset.filter(                    │
-│   username__icontains='john'        │
+│   name__icontains='john'            │
 │ ) | queryset.filter(                │
 │   email__icontains='john'           │
-│ ) | ...                             │
+│ )                                   │
 └────────────┬────────────────────────┘
              │
              ↓
 ┌─────────────────────────────────────┐
 │ Order Results                       │
 │                                     │
-│ queryset.order_by('-created_at')    │
+│ queryset.order_by('id')             │
 └────────────┬────────────────────────┘
              │
              ↓

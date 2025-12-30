@@ -10,7 +10,7 @@ To create an admin user, run:
     python manage.py createsuperuser
 """
 
-from django.contrib import admin
+from django.contrib import admin  # type: ignore
 from .models import User
 
 
@@ -25,70 +25,33 @@ class UserAdmin(admin.ModelAdmin):
     # Fields to display in the list view
     list_display = [
         'id',
-        'username',
+        'name',
         'email',
-        'first_name',
-        'last_name',
-        'is_active',
-        'created_at',
-        'updated_at',
     ]
     
     # Fields that are clickable links to the detail page
-    list_display_links = ['id', 'username']
-    
-    # Fields that can be edited directly in the list view
-    list_editable = ['is_active']
-    
-    # Filters in the right sidebar
-    list_filter = [
-        'is_active',
-        'created_at',
-        'updated_at',
-    ]
+    list_display_links = ['id', 'name']
     
     # Search functionality
     search_fields = [
-        'username',
+        'name',
         'email',
-        'first_name',
-        'last_name',
     ]
     
-    # Default ordering (newest first)
-    ordering = ['-created_at']
+    # Default ordering (by id)
+    ordering = ['id']
     
     # Number of items per page
     list_per_page = 25
     
-    # Fields to display in the detail/edit form
-    fields = [
-        'username',
-        'email',
-        'first_name',
-        'last_name',
-        'is_active',
-        'created_at',
-        'updated_at',
-    ]
-    
     # Read-only fields (cannot be edited)
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['id']
     
-    # Group fields into sections (optional)
+    # Group fields into sections
+    # Note: Use either 'fields' OR 'fieldsets', not both
     fieldsets = (
-        ('Basic Information', {
-            'fields': ('username', 'email')
-        }),
-        ('Personal Information', {
-            'fields': ('first_name', 'last_name')
-        }),
-        ('Status', {
-            'fields': ('is_active',)
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',),  # Collapsible section
+        ('User Information', {
+            'fields': ('id', 'name', 'email')
         }),
     )
     

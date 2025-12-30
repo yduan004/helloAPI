@@ -8,8 +8,8 @@ The model uses Django's ORM (Object-Relational Mapping) to interact with
 the database without writing raw SQL queries.
 """
 
-from django.db import models
-from django.utils import timezone
+from django.db import models  # type: ignore
+from django.utils import timezone  # type: ignore
 
 
 class User(models.Model):
@@ -22,13 +22,8 @@ class User(models.Model):
     Fields:
     -------
     - id: Primary key (auto-generated)
-    - username: Unique username for the user
+    - name: User's name
     - email: User's email address (unique)
-    - first_name: User's first name
-    - last_name: User's last name
-    - is_active: Whether the user account is active
-    - created_at: Timestamp when the user was created
-    - updated_at: Timestamp when the user was last updated
     
     Meta:
     -----
@@ -41,13 +36,11 @@ class User(models.Model):
     # If your existing table has 'id', Django will use it automatically
     id = models.AutoField(primary_key=True)
     
-    # Username field - unique identifier for login
+    # Name field - user's full name
     # max_length: maximum character length
-    # unique: ensures no two users can have the same username
-    username = models.CharField(
-        max_length=150,
-        unique=True,
-        help_text="Required. 150 characters or fewer."
+    name = models.CharField(
+        max_length=255,
+        help_text="User's full name"
     )
     
     # Email field - for user communication
@@ -56,44 +49,6 @@ class User(models.Model):
         max_length=254,
         unique=True,
         help_text="User's email address"
-    )
-    
-    # First name field
-    # blank=True: allows empty values in forms
-    # null=True: allows NULL in database
-    first_name = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        help_text="User's first name"
-    )
-    
-    # Last name field
-    last_name = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        help_text="User's last name"
-    )
-    
-    # Active status - for soft deletes or account suspension
-    # default=True: new users are active by default
-    is_active = models.BooleanField(
-        default=True,
-        help_text="Designates whether this user should be treated as active."
-    )
-    
-    # Timestamp fields for tracking record creation and updates
-    # auto_now_add: automatically set when object is first created
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="Timestamp when the user was created"
-    )
-    
-    # auto_now: automatically updated every time the object is saved
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        help_text="Timestamp when the user was last updated"
     )
     
     class Meta:
@@ -111,8 +66,8 @@ class User(models.Model):
         # If you want Django to manage the table, set this to True
         managed = False
         
-        # Default ordering for queries (newest first)
-        ordering = ['-created_at']
+        # Default ordering for queries (by id)
+        ordering = ['id']
         
         # Human-readable names for the model
         verbose_name = 'User'
@@ -125,24 +80,9 @@ class User(models.Model):
         
         Returns:
         --------
-        str: The username of the user
+        str: The name of the user
         """
-        return self.username
-    
-    def get_full_name(self):
-        """
-        Returns the user's full name.
-        
-        Returns:
-        --------
-        str: First name and last name with a space in between,
-             or just the username if names are not set.
-        """
-        if self.first_name and self.last_name:
-            return f"{self.first_name} {self.last_name}"
-        elif self.first_name:
-            return self.first_name
-        return self.username
+        return self.name
     
     def save(self, *args, **kwargs):
         """
@@ -154,6 +94,10 @@ class User(models.Model):
         # Convert email to lowercase for consistency
         if self.email:
             self.email = self.email.lower()
+        
+        # Trim whitespace from name
+        if self.name:
+            self.name = self.name.strip()
         
         # Call the parent class's save method to actually save to database
         super().save(*args, **kwargs)

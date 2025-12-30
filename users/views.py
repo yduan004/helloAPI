@@ -18,10 +18,8 @@ API Workflow:
 4. View returns HTTP response (usually JSON)
 """
 
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
+from rest_framework import viewsets, status  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
 from .models import User
 from .serializers import UserSerializer, UserListSerializer
@@ -77,30 +75,19 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         queryset = User.objects.all()
         
-        # Optional: Add filtering based on query parameters
-        # Example: /api/users/?is_active=true
-        is_active = self.request.query_params.get('is_active', None)
-        if is_active is not None:
-            # Convert string to boolean
-            is_active_bool = is_active.lower() in ['true', '1', 'yes']
-            queryset = queryset.filter(is_active=is_active_bool)
-        
         # Optional: Add search functionality
         # Example: /api/users/?search=john
         search = self.request.query_params.get('search', None)
         if search:
+            # Search in name and email fields
             queryset = queryset.filter(
-                username__icontains=search
+                name__icontains=search
             ) | queryset.filter(
                 email__icontains=search
-            ) | queryset.filter(
-                first_name__icontains=search
-            ) | queryset.filter(
-                last_name__icontains=search
             )
         
-        # Order by creation date (newest first)
-        return queryset.order_by('-created_at')
+        # Order by id
+        return queryset.order_by('id')
     
     def get_serializer_class(self):
         """
@@ -128,8 +115,7 @@ class UserViewSet(viewsets.ModelViewSet):
         
         Query Parameters:
         -----------------
-        - is_active: Filter by active status (true/false)
-        - search: Search in username, email, first_name, last_name
+        - search: Search in name and email fields
         - page: Page number for pagination
         
         Response:
@@ -142,10 +128,8 @@ class UserViewSet(viewsets.ModelViewSet):
             "results": [
                 {
                     "id": 1,
-                    "username": "john_doe",
-                    "email": "john@example.com",
-                    "is_active": true,
-                    "created_at": "2024-01-01T12:00:00Z"
+                    "name": "John Doe",
+                    "email": "john@example.com"
                 },
                 ...
             ]
@@ -173,11 +157,8 @@ class UserViewSet(viewsets.ModelViewSet):
         Request Body:
         -------------
         {
-            "username": "john_doe",
-            "email": "john@example.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "is_active": true
+            "name": "John Doe",
+            "email": "john@example.com"
         }
         
         Response:
@@ -185,19 +166,13 @@ class UserViewSet(viewsets.ModelViewSet):
         201 Created: User created successfully
         {
             "id": 1,
-            "username": "john_doe",
-            "email": "john@example.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "full_name": "John Doe",
-            "is_active": true,
-            "created_at": "2024-01-01T12:00:00Z",
-            "updated_at": "2024-01-01T12:00:00Z"
+            "name": "John Doe",
+            "email": "john@example.com"
         }
         
         400 Bad Request: Validation error
         {
-            "username": ["A user with this username already exists."],
+            "name": ["This field is required."],
             "email": ["This field is required."]
         }
         """
@@ -244,14 +219,8 @@ class UserViewSet(viewsets.ModelViewSet):
         200 OK: User found
         {
             "id": 1,
-            "username": "john_doe",
-            "email": "john@example.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "full_name": "John Doe",
-            "is_active": true,
-            "created_at": "2024-01-01T12:00:00Z",
-            "updated_at": "2024-01-01T12:00:00Z"
+            "name": "John Doe",
+            "email": "john@example.com"
         }
         
         404 Not Found: User doesn't exist
@@ -277,11 +246,8 @@ class UserViewSet(viewsets.ModelViewSet):
         Request Body:
         -------------
         {
-            "username": "john_doe_updated",
-            "email": "john.updated@example.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "is_active": true
+            "name": "John Doe Updated",
+            "email": "john.updated@example.com"
         }
         
         Response:
@@ -289,9 +255,8 @@ class UserViewSet(viewsets.ModelViewSet):
         200 OK: User updated successfully
         {
             "id": 1,
-            "username": "john_doe_updated",
-            "email": "john.updated@example.com",
-            ...
+            "name": "John Doe Updated",
+            "email": "john.updated@example.com"
         }
         
         400 Bad Request: Validation error
@@ -324,7 +289,7 @@ class UserViewSet(viewsets.ModelViewSet):
         Request Body (only include fields you want to update):
         -------------------------------------------------------
         {
-            "first_name": "Johnny"
+            "name": "Johnny Doe"
         }
         
         Response:
@@ -332,11 +297,8 @@ class UserViewSet(viewsets.ModelViewSet):
         200 OK: User updated successfully
         {
             "id": 1,
-            "username": "john_doe",  // unchanged
-            "email": "john@example.com",  // unchanged
-            "first_name": "Johnny",  // updated
-            "last_name": "Doe",  // unchanged
-            ...
+            "name": "Johnny Doe",  // updated
+            "email": "john@example.com"  // unchanged
         }
         """
         # partial=True means only provided fields are required (PATCH)
@@ -380,9 +342,6 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         Perform the actual deletion of the user.
         
-        Override this method for soft deletes or custom logic.
-        For example, instead of deleting, you could set is_active=False.
-        
         Parameters:
         -----------
         instance : User
@@ -390,90 +349,3 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         # Hard delete - actually removes from database
         instance.delete()
-        
-        # Alternative: Soft delete - just mark as inactive
-        # instance.is_active = False
-        # instance.save()
-    
-    @action(detail=True, methods=['post'])
-    def activate(self, request, pk=None):
-        """
-        Custom action to activate a user.
-        
-        Endpoint: POST /api/users/{id}/activate/
-        
-        This is a custom action (not part of standard CRUD).
-        @action decorator creates a new endpoint.
-        
-        Parameters:
-        -----------
-        detail=True: This action is for a single user (requires pk)
-        methods=['post']: Only POST method is allowed
-        
-        Response:
-        ---------
-        200 OK: User activated
-        {
-            "status": "User activated successfully",
-            "user": { ... user data ... }
-        }
-        """
-        user = self.get_object()
-        user.is_active = True
-        user.save()
-        
-        serializer = self.get_serializer(user)
-        return Response({
-            'status': 'User activated successfully',
-            'user': serializer.data
-        })
-    
-    @action(detail=True, methods=['post'])
-    def deactivate(self, request, pk=None):
-        """
-        Custom action to deactivate a user.
-        
-        Endpoint: POST /api/users/{id}/deactivate/
-        
-        Response:
-        ---------
-        200 OK: User deactivated
-        {
-            "status": "User deactivated successfully",
-            "user": { ... user data ... }
-        }
-        """
-        user = self.get_object()
-        user.is_active = False
-        user.save()
-        
-        serializer = self.get_serializer(user)
-        return Response({
-            'status': 'User deactivated successfully',
-            'user': serializer.data
-        })
-    
-    @action(detail=False, methods=['get'])
-    def active_users(self, request):
-        """
-        Custom action to get all active users.
-        
-        Endpoint: GET /api/users/active_users/
-        
-        Parameters:
-        -----------
-        detail=False: This action is for the collection (no pk required)
-        methods=['get']: Only GET method is allowed
-        
-        Response:
-        ---------
-        200 OK: List of active users
-        [
-            { ... user data ... },
-            { ... user data ... },
-            ...
-        ]
-        """
-        active_users = User.objects.filter(is_active=True)
-        serializer = self.get_serializer(active_users, many=True)
-        return Response(serializer.data)

@@ -11,7 +11,7 @@ Think of serializers as translators between:
 - Database models (Python objects) ←→ JSON (API data)
 """
 
-from rest_framework import serializers
+from rest_framework import serializers  # type: ignore
 from .models import User
 
 
@@ -32,10 +32,6 @@ class UserSerializer(serializers.ModelSerializer):
     - Provides default validation
     """
     
-    # Read-only field that combines first_name and last_name
-    # This field is computed and not stored in the database
-    full_name = serializers.SerializerMethodField(read_only=True)
-    
     class Meta:
         """
         Serializer Metadata
@@ -46,23 +42,15 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         
         # Fields to include in the serialized output
-        # '__all__' includes all model fields
-        # Alternative: specify fields explicitly like ['id', 'username', 'email']
-        fields = [
-            'id',
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'full_name',      # Custom computed field
-            'is_active',
-            'created_at',
-            'updated_at',
-        ]
+        # Using '__all__' to include all model fields (id, name, email)
+        fields = '__all__'
+        
+        # Alternatively, specify fields explicitly:
+        # fields = ['id', 'name', 'email']
         
         # Read-only fields - cannot be modified through the API
-        # These fields are automatically set by the system
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        # ID is automatically set by the database
+        read_only_fields = ['id']
         
         # Extra keyword arguments for fields
         # Provides additional validation and behavior
@@ -71,39 +59,13 @@ class UserSerializer(serializers.ModelSerializer):
                 'required': True,  # Email is mandatory
                 'allow_blank': False,  # Cannot be empty string
             },
-            'username': {
-                'required': True,  # Username is mandatory
+            'name': {
+                'required': True,  # Name is mandatory
                 'allow_blank': False,  # Cannot be empty string
-                'min_length': 3,  # Minimum 3 characters
-                'max_length': 150,  # Maximum 150 characters
-            },
-            'first_name': {
-                'required': False,  # Optional field
-                'allow_blank': True,
-            },
-            'last_name': {
-                'required': False,  # Optional field
-                'allow_blank': True,
+                'min_length': 1,  # Minimum 1 character
+                'max_length': 255,  # Maximum 255 characters
             },
         }
-    
-    def get_full_name(self, obj):
-        """
-        Custom method for the 'full_name' SerializerMethodField.
-        
-        SerializerMethodField requires a method named 'get_<field_name>'.
-        This method is called to compute the field value.
-        
-        Parameters:
-        -----------
-        obj : User
-            The User instance being serialized
-        
-        Returns:
-        --------
-        str: The user's full name
-        """
-        return obj.get_full_name()
     
     def validate_email(self, value):
         """
@@ -144,35 +106,31 @@ class UserSerializer(serializers.ModelSerializer):
         
         return value
     
-    def validate_username(self, value):
+    def validate_name(self, value):
         """
-        Field-level validation for username.
+        Field-level validation for name.
         
         Parameters:
         -----------
         value : str
-            The username value to validate
+            The name value to validate
         
         Returns:
         --------
-        str: The validated username value
+        str: The validated name value (trimmed)
         
         Raises:
         -------
         serializers.ValidationError: If validation fails
         """
-        # Check if username already exists (for create operations)
-        if self.instance is None:  # Creating new user
-            if User.objects.filter(username=value).exists():
-                raise serializers.ValidationError(
-                    "A user with this username already exists."
-                )
-        else:  # Updating existing user
-            # Check if another user has this username
-            if User.objects.filter(username=value).exclude(id=self.instance.id).exists():
-                raise serializers.ValidationError(
-                    "A user with this username already exists."
-                )
+        # Trim whitespace
+        value = value.strip()
+        
+        # Ensure name is not empty after trimming
+        if not value:
+            raise serializers.ValidationError(
+                "Name cannot be empty or just whitespace."
+            )
         
         return value
     
@@ -241,11 +199,8 @@ class UserSerializer(serializers.ModelSerializer):
         User: The updated User instance
         """
         # Update instance fields with validated data
-        instance.username = validated_data.get('username', instance.username)
+        instance.name = validated_data.get('name', instance.name)
         instance.email = validated_data.get('email', instance.email)
-        instance.first_name = validated_data.get('first_name', instance.first_name)
-        instance.last_name = validated_data.get('last_name', instance.last_name)
-        instance.is_active = validated_data.get('is_active', instance.is_active)
         
         # Save the updated instance to the database
         instance.save()
@@ -258,14 +213,14 @@ class UserListSerializer(serializers.ModelSerializer):
     ===========================================
     A simplified serializer for listing users.
     
-    This serializer includes fewer fields for better performance
-    when returning lists of users. Use this for GET /api/users/
-    and use UserSerializer for detailed views.
+    Since the User model is already simple (id, name, email),
+    this serializer is the same as UserSerializer.
+    You can customize this if you want to show fewer fields in list views.
     """
     
     class Meta:
         model = User
-        # Only include essential fields for list view
-        fields = ['id', 'username', 'email', 'is_active', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        # Include all fields (already minimal)
+        fields = '__all__'
+        read_only_fields = ['id']
 
