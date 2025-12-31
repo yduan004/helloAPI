@@ -9,7 +9,6 @@ the database without writing raw SQL queries.
 """
 
 from django.db import models  # type: ignore
-from django.utils import timezone  # type: ignore
 
 
 class User(models.Model):
