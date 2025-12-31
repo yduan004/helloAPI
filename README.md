@@ -21,7 +21,7 @@ A comprehensive REST API for user management with full CRUD operations, built wi
 - **RESTful API**: Following REST best practices
 - **PostgreSQL Integration**: Connected to existing `my_database` database
 - **Data Validation**: Automatic validation of user data
-- **Search & Filtering**: Search users and filter by status
+- **Search & Filtering**: Search users by name and email
 - **Pagination**: Efficient handling of large datasets
 - **CORS Support**: Ready for frontend integration
 - **Admin Interface**: Built-in Django admin for easy management
@@ -139,20 +139,11 @@ http://localhost:8000/api/
 | PATCH | `/api/users/{id}/` | Update a user (partial update) |
 | DELETE | `/api/users/{id}/` | Delete a user |
 
-### Custom Action Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/users/{id}/activate/` | Activate a user |
-| POST | `/api/users/{id}/deactivate/` | Deactivate a user |
-| GET | `/api/users/active_users/` | Get all active users |
-
 ### Query Parameters
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
-| `search` | Search in username, email, first_name, last_name | `/api/users/?search=john` |
-| `is_active` | Filter by active status | `/api/users/?is_active=true` |
+| `search` | Search in name and email | `/api/users/?search=john` |
 | `page` | Page number for pagination | `/api/users/?page=2` |
 
 ## 📝 API Usage Examples
@@ -173,10 +164,8 @@ curl -X GET http://localhost:8000/api/users/
     "results": [
         {
             "id": 1,
-            "username": "john_doe",
-            "email": "john@example.com",
-            "is_active": true,
-            "created_at": "2024-01-01T12:00:00Z"
+            "name": "John Doe",
+            "email": "john@example.com"
         }
     ]
 }
@@ -189,11 +178,8 @@ curl -X GET http://localhost:8000/api/users/
 curl -X POST http://localhost:8000/api/users/ \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "jane_doe",
-    "email": "jane@example.com",
-    "first_name": "Jane",
-    "last_name": "Doe",
-    "is_active": true
+    "name": "Jane Smith",
+    "email": "jane@example.com"
   }'
 ```
 
@@ -201,14 +187,8 @@ curl -X POST http://localhost:8000/api/users/ \
 ```json
 {
     "id": 2,
-    "username": "jane_doe",
-    "email": "jane@example.com",
-    "first_name": "Jane",
-    "last_name": "Doe",
-    "full_name": "Jane Doe",
-    "is_active": true,
-    "created_at": "2024-01-01T12:30:00Z",
-    "updated_at": "2024-01-01T12:30:00Z"
+    "name": "Jane Smith",
+    "email": "jane@example.com"
 }
 ```
 
@@ -223,14 +203,8 @@ curl -X GET http://localhost:8000/api/users/1/
 ```json
 {
     "id": 1,
-    "username": "john_doe",
-    "email": "john@example.com",
-    "first_name": "John",
-    "last_name": "Doe",
-    "full_name": "John Doe",
-    "is_active": true,
-    "created_at": "2024-01-01T12:00:00Z",
-    "updated_at": "2024-01-01T12:00:00Z"
+    "name": "John Doe",
+    "email": "john@example.com"
 }
 ```
 
@@ -241,11 +215,8 @@ curl -X GET http://localhost:8000/api/users/1/
 curl -X PUT http://localhost:8000/api/users/1/ \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "john_doe_updated",
-    "email": "john.updated@example.com",
-    "first_name": "John",
-    "last_name": "Doe",
-    "is_active": true
+    "name": "John Doe Updated",
+    "email": "john.updated@example.com"
   }'
 ```
 
@@ -256,7 +227,7 @@ curl -X PUT http://localhost:8000/api/users/1/ \
 curl -X PATCH http://localhost:8000/api/users/1/ \
   -H "Content-Type: application/json" \
   -d '{
-    "first_name": "Johnny"
+    "name": "Johnny Doe"
   }'
 ```
 
@@ -274,34 +245,6 @@ curl -X DELETE http://localhost:8000/api/users/1/
 **Request:**
 ```bash
 curl -X GET "http://localhost:8000/api/users/?search=john"
-```
-
-### 8. Filter Active Users
-
-**Request:**
-```bash
-curl -X GET "http://localhost:8000/api/users/?is_active=true"
-```
-
-### 9. Activate a User
-
-**Request:**
-```bash
-curl -X POST http://localhost:8000/api/users/1/activate/
-```
-
-**Response:**
-```json
-{
-    "status": "User activated successfully",
-    "user": {
-        "id": 1,
-        "username": "john_doe",
-        "email": "john@example.com",
-        "is_active": true,
-        ...
-    }
-}
 ```
 
 ## 🧠 Understanding the Code
@@ -323,7 +266,7 @@ Client Response ← JSON ← Serializer ← View ← Model ← Database
 
 ```python
 class User(models.Model):
-    username = models.CharField(max_length=150, unique=True)
+    name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     # ... more fields
 ```
@@ -337,7 +280,7 @@ class User(models.Model):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', ...]
+        fields = ['id', 'name', 'email']
 ```
 
 #### 3. Views (`users/views.py`)
@@ -376,13 +319,8 @@ The `users` table structure:
 ```sql
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(150) UNIQUE NOT NULL,
-    email VARCHAR(254) UNIQUE NOT NULL,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(254) UNIQUE NOT NULL
 );
 ```
 

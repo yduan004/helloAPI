@@ -27,14 +27,11 @@ http://localhost:8000/api/
 | Action | Method | Endpoint | Body |
 |--------|--------|----------|------|
 | List users | `GET` | `/api/users/` | - |
-| Create user | `POST` | `/api/users/` | `{"username": "...", "email": "..."}` |
+| Create user | `POST` | `/api/users/` | `{"name": "...", "email": "..."}` |
 | Get user | `GET` | `/api/users/{id}/` | - |
-| Update user (full) | `PUT` | `/api/users/{id}/` | `{"username": "...", "email": "...", ...}` |
-| Update user (partial) | `PATCH` | `/api/users/{id}/` | `{"first_name": "..."}` |
+| Update user (full) | `PUT` | `/api/users/{id}/` | `{"name": "...", "email": "..."}` |
+| Update user (partial) | `PATCH` | `/api/users/{id}/` | `{"name": "..."}` |
 | Delete user | `DELETE` | `/api/users/{id}/` | - |
-| Activate user | `POST` | `/api/users/{id}/activate/` | - |
-| Deactivate user | `POST` | `/api/users/{id}/deactivate/` | - |
-| Get active users | `GET` | `/api/users/active_users/` | - |
 
 ## 🔍 Query Parameters
 
@@ -42,15 +39,11 @@ http://localhost:8000/api/
 # Search users
 /api/users/?search=john
 
-# Filter by active status
-/api/users/?is_active=true
-/api/users/?is_active=false
-
 # Pagination
 /api/users/?page=2
 
 # Combine parameters
-/api/users/?search=john&is_active=true&page=1
+/api/users/?search=john&page=1
 ```
 
 ## 💻 curl Commands
@@ -65,10 +58,8 @@ curl http://localhost:8000/api/users/
 curl -X POST http://localhost:8000/api/users/ \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "john_doe",
-    "email": "john@example.com",
-    "first_name": "John",
-    "last_name": "Doe"
+    "name": "John Doe",
+    "email": "john@example.com"
   }'
 ```
 
@@ -82,11 +73,8 @@ curl http://localhost:8000/api/users/1/
 curl -X PUT http://localhost:8000/api/users/1/ \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "john_doe",
-    "email": "john@example.com",
-    "first_name": "Johnny",
-    "last_name": "Doe",
-    "is_active": true
+    "name": "John Doe",
+    "email": "john@example.com"
   }'
 ```
 
@@ -94,7 +82,7 @@ curl -X PUT http://localhost:8000/api/users/1/ \
 ```bash
 curl -X PATCH http://localhost:8000/api/users/1/ \
   -H "Content-Type: application/json" \
-  -d '{"first_name": "Johnny"}'
+  -d '{"name": "Johnny Doe"}'
 ```
 
 ### Delete User
@@ -109,17 +97,7 @@ curl "http://localhost:8000/api/users/?search=john"
 
 ### Filter Active Users
 ```bash
-curl "http://localhost:8000/api/users/?is_active=true"
-```
-
-### Activate User
-```bash
-curl -X POST http://localhost:8000/api/users/1/activate/
-```
-
-### Deactivate User
-```bash
-curl -X POST http://localhost:8000/api/users/1/deactivate/
+curl "http://localhost:8000/api/users/?search=doe"
 ```
 
 ## 🐍 Python requests Examples
@@ -135,10 +113,8 @@ users = response.json()
 
 # Create a user
 data = {
-    "username": "jane_doe",
-    "email": "jane@example.com",
-    "first_name": "Jane",
-    "last_name": "Doe"
+    "name": "Jane Doe",
+    "email": "jane@example.com"
 }
 response = requests.post(f"{BASE_URL}/users/", json=data)
 new_user = response.json()
@@ -149,7 +125,7 @@ response = requests.get(f"{BASE_URL}/users/{user_id}/")
 user = response.json()
 
 # Update a user (partial)
-data = {"first_name": "Janet"}
+data = {"name": "Janet Doe"}
 response = requests.patch(f"{BASE_URL}/users/{user_id}/", json=data)
 updated_user = response.json()
 
@@ -161,11 +137,6 @@ response = requests.delete(f"{BASE_URL}/users/{user_id}/")
 params = {"search": "john"}
 response = requests.get(f"{BASE_URL}/users/", params=params)
 results = response.json()
-
-# Filter active users
-params = {"is_active": "true"}
-response = requests.get(f"{BASE_URL}/users/", params=params)
-active_users = response.json()
 ```
 
 ## 🗄 Database Commands
@@ -187,20 +158,17 @@ SELECT * FROM users;
 -- Count users
 SELECT COUNT(*) FROM users;
 
--- Find user by username
-SELECT * FROM users WHERE username = 'john_doe';
-
--- Find active users
-SELECT * FROM users WHERE is_active = true;
+-- Find user by email
+SELECT * FROM users WHERE email = 'john@example.com';
 
 -- Search users
-SELECT * FROM users WHERE username ILIKE '%john%' OR email ILIKE '%john%';
+SELECT * FROM users WHERE name ILIKE '%john%' OR email ILIKE '%john%';
 
 -- Delete a user
 DELETE FROM users WHERE id = 1;
 
 -- Update a user
-UPDATE users SET first_name = 'Johnny' WHERE id = 1;
+UPDATE users SET name = 'Johnny Doe' WHERE id = 1;
 ```
 
 ## 🔧 Django Management Commands
@@ -264,25 +232,23 @@ user = User.objects.get(id=1)
 print(user.username)
 
 # Filter users
-active_users = User.objects.filter(is_active=True)
-print(active_users)
+users = User.objects.filter(email__icontains='example.com')
+print(users)
 
 # Search users
-users = User.objects.filter(username__icontains='john')
+users = User.objects.filter(name__icontains='john')
 print(users)
 
 # Create a user
 user = User.objects.create(
-    username='test_user',
-    email='test@example.com',
-    first_name='Test',
-    last_name='User'
+    name='Test User',
+    email='test@example.com'
 )
 print(f"Created user: {user.id}")
 
 # Update a user
 user = User.objects.get(id=1)
-user.first_name = 'Johnny'
+user.name = 'Johnny Doe'
 user.save()
 
 # Delete a user
@@ -295,8 +261,8 @@ print(f"Total users: {count}")
 
 # Get or create
 user, created = User.objects.get_or_create(
-    username='john_doe',
-    defaults={'email': 'john@example.com'}
+    email='john@example.com',
+    defaults={'name': 'John Doe'}
 )
 print(f"Created: {created}")
 ```
@@ -349,7 +315,7 @@ from users.models import User
 from users.serializers import UserSerializer
 
 # Test serializer
-data = {"username": "test", "email": "test@example.com"}
+data = {"name": "Test", "email": "test@example.com"}
 serializer = UserSerializer(data=data)
 print(serializer.is_valid())
 print(serializer.errors)
@@ -382,17 +348,16 @@ print(serializer.errors)
 ```json
 {
     "id": 1,
-    "username": "john_doe",
-    "email": "john@example.com",
-    ...
+    "name": "John Doe",
+    "email": "john@example.com"
 }
 ```
 
 ### Error Response
 ```json
 {
-    "username": ["A user with this username already exists."],
-    "email": ["This field is required."]
+    "name": ["This field is required."],
+    "email": ["A user with this email already exists."]
 }
 ```
 
