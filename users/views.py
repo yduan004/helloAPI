@@ -19,6 +19,7 @@ API Workflow:
 """
 
 from rest_framework import viewsets, status  # type: ignore
+from rest_framework.decorators import action  # type: ignore
 from rest_framework.response import Response  # type: ignore
 
 from .models import User
@@ -75,6 +76,14 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         queryset = User.objects.all()
         
+        # Optional: Add filtering based on query parameters
+        # Example: /api/users/?is_active=true
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            # Convert string to boolean
+            is_active_bool = is_active.lower() in ['true', '1', 'yes']
+            queryset = queryset.filter(is_active=is_active_bool)
+        
         # Optional: Add search functionality
         # Example: /api/users/?search=john
         search = self.request.query_params.get('search', None)
@@ -115,6 +124,7 @@ class UserViewSet(viewsets.ModelViewSet):
         
         Query Parameters:
         -----------------
+        - is_active: Filter by active status (true/false)
         - search: Search in name and email fields
         - page: Page number for pagination
         
@@ -158,7 +168,8 @@ class UserViewSet(viewsets.ModelViewSet):
         -------------
         {
             "name": "John Doe",
-            "email": "john@example.com"
+            "email": "john@example.com",
+            "is_active": true
         }
         
         Response:
@@ -167,7 +178,8 @@ class UserViewSet(viewsets.ModelViewSet):
         {
             "id": 1,
             "name": "John Doe",
-            "email": "john@example.com"
+            "email": "john@example.com",
+            "is_active": true
         }
         
         400 Bad Request: Validation error
@@ -220,7 +232,8 @@ class UserViewSet(viewsets.ModelViewSet):
         {
             "id": 1,
             "name": "John Doe",
-            "email": "john@example.com"
+            "email": "john@example.com",
+            "is_active": true
         }
         
         404 Not Found: User doesn't exist
@@ -247,7 +260,8 @@ class UserViewSet(viewsets.ModelViewSet):
         -------------
         {
             "name": "John Doe Updated",
-            "email": "john.updated@example.com"
+            "email": "john.updated@example.com",
+            "is_active": true
         }
         
         Response:
@@ -342,6 +356,9 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         Perform the actual deletion of the user.
         
+        Override this method for soft deletes or custom logic.
+        For example, instead of deleting, you could set is_active=False.
+        
         Parameters:
         -----------
         instance : User
@@ -349,3 +366,90 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         # Hard delete - actually removes from database
         instance.delete()
+        
+        # Alternative: Soft delete - just mark as inactive
+        # instance.is_active = False
+        # instance.save()
+    
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        """
+        Custom action to activate a user.
+        
+        Endpoint: POST /api/users/{id}/activate/
+        
+        This is a custom action (not part of standard CRUD).
+        @action decorator creates a new endpoint.
+        
+        Parameters:
+        -----------
+        detail=True: This action is for a single user (requires pk)
+        methods=['post']: Only POST method is allowed
+        
+        Response:
+        ---------
+        200 OK: User activated
+        {
+            "status": "User activated successfully",
+            "user": { ... user data ... }
+        }
+        """
+        user = self.get_object()
+        user.is_active = True
+        user.save()
+        
+        serializer = self.get_serializer(user)
+        return Response({
+            'status': 'User activated successfully',
+            'user': serializer.data
+        })
+    
+    @action(detail=True, methods=['post'])
+    def deactivate(self, request, pk=None):
+        """
+        Custom action to deactivate a user.
+        
+        Endpoint: POST /api/users/{id}/deactivate/
+        
+        Response:
+        ---------
+        200 OK: User deactivated
+        {
+            "status": "User deactivated successfully",
+            "user": { ... user data ... }
+        }
+        """
+        user = self.get_object()
+        user.is_active = False
+        user.save()
+        
+        serializer = self.get_serializer(user)
+        return Response({
+            'status': 'User deactivated successfully',
+            'user': serializer.data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def active_users(self, request):
+        """
+        Custom action to get all active users.
+        
+        Endpoint: GET /api/users/active_users/
+        
+        Parameters:
+        -----------
+        detail=False: This action is for the collection (no pk required)
+        methods=['get']: Only GET method is allowed
+        
+        Response:
+        ---------
+        200 OK: List of active users
+        [
+            { ... user data ... },
+            { ... user data ... },
+            ...
+        ]
+        """
+        active_users = User.objects.filter(is_active=True)
+        serializer = self.get_serializer(active_users, many=True)
+        return Response(serializer.data)

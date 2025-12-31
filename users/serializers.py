@@ -42,11 +42,11 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         
         # Fields to include in the serialized output
-        # Using '__all__' to include all model fields (id, name, email)
+        # Using '__all__' to include all model fields (id, name, email, is_active)
         fields = '__all__'
         
         # Alternatively, specify fields explicitly:
-        # fields = ['id', 'name', 'email']
+        # fields = ['id', 'name', 'email', 'is_active']
         
         # Read-only fields - cannot be modified through the API
         # ID is automatically set by the database
@@ -64,6 +64,10 @@ class UserSerializer(serializers.ModelSerializer):
                 'allow_blank': False,  # Cannot be empty string
                 'min_length': 1,  # Minimum 1 character
                 'max_length': 255,  # Maximum 255 characters
+            },
+            'is_active': {
+                'required': False,  # Optional field
+                'default': True,  # Defaults to active
             },
         }
     
@@ -201,6 +205,7 @@ class UserSerializer(serializers.ModelSerializer):
         # Update instance fields with validated data
         instance.name = validated_data.get('name', instance.name)
         instance.email = validated_data.get('email', instance.email)
+        instance.is_active = validated_data.get('is_active', instance.is_active)
         
         # Save the updated instance to the database
         instance.save()

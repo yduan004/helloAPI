@@ -21,10 +21,11 @@ A comprehensive REST API for user management with full CRUD operations, built wi
 - **RESTful API**: Following REST best practices
 - **PostgreSQL Integration**: Connected to existing `my_database` database
 - **Data Validation**: Automatic validation of user data
-- **Search & Filtering**: Search users by name and email
+- **Search & Filtering**: Search users by name and email, filter by active status
 - **Pagination**: Efficient handling of large datasets
 - **CORS Support**: Ready for frontend integration
 - **Admin Interface**: Built-in Django admin for easy management
+- **Soft Delete**: Deactivate users instead of deleting
 - **Comprehensive Documentation**: Well-commented code for learning
 
 ## 🛠 Technology Stack
@@ -139,11 +140,20 @@ http://localhost:8000/api/
 | PATCH | `/api/users/{id}/` | Update a user (partial update) |
 | DELETE | `/api/users/{id}/` | Delete a user |
 
+### Custom Action Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/users/{id}/activate/` | Activate a user |
+| POST | `/api/users/{id}/deactivate/` | Deactivate a user |
+| GET | `/api/users/active_users/` | Get all active users |
+
 ### Query Parameters
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `search` | Search in name and email | `/api/users/?search=john` |
+| `is_active` | Filter by active status | `/api/users/?is_active=true` |
 | `page` | Page number for pagination | `/api/users/?page=2` |
 
 ## 📝 API Usage Examples
@@ -165,7 +175,8 @@ curl -X GET http://localhost:8000/api/users/
         {
             "id": 1,
             "name": "John Doe",
-            "email": "john@example.com"
+            "email": "john@example.com",
+            "is_active": true
         }
     ]
 }
@@ -179,7 +190,8 @@ curl -X POST http://localhost:8000/api/users/ \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Jane Smith",
-    "email": "jane@example.com"
+    "email": "jane@example.com",
+    "is_active": true
   }'
 ```
 
@@ -188,7 +200,8 @@ curl -X POST http://localhost:8000/api/users/ \
 {
     "id": 2,
     "name": "Jane Smith",
-    "email": "jane@example.com"
+    "email": "jane@example.com",
+    "is_active": true
 }
 ```
 
@@ -204,7 +217,8 @@ curl -X GET http://localhost:8000/api/users/1/
 {
     "id": 1,
     "name": "John Doe",
-    "email": "john@example.com"
+    "email": "john@example.com",
+    "is_active": true
 }
 ```
 
@@ -216,7 +230,8 @@ curl -X PUT http://localhost:8000/api/users/1/ \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe Updated",
-    "email": "john.updated@example.com"
+    "email": "john.updated@example.com",
+    "is_active": false
   }'
 ```
 
@@ -247,6 +262,60 @@ curl -X DELETE http://localhost:8000/api/users/1/
 curl -X GET "http://localhost:8000/api/users/?search=john"
 ```
 
+### 8. Filter Active Users
+
+**Request:**
+```bash
+curl -X GET "http://localhost:8000/api/users/?is_active=true"
+```
+
+### 9. Get Active Users (Custom Endpoint)
+
+**Request:**
+```bash
+curl -X GET http://localhost:8000/api/users/active_users/
+```
+
+### 10. Activate a User
+
+**Request:**
+```bash
+curl -X POST http://localhost:8000/api/users/1/activate/
+```
+
+**Response:**
+```json
+{
+    "status": "User activated successfully",
+    "user": {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john@example.com",
+        "is_active": true
+    }
+}
+```
+
+### 11. Deactivate a User
+
+**Request:**
+```bash
+curl -X POST http://localhost:8000/api/users/1/deactivate/
+```
+
+**Response:**
+```json
+{
+    "status": "User deactivated successfully",
+    "user": {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john@example.com",
+        "is_active": false
+    }
+}
+```
+
 ## 🧠 Understanding the Code
 
 ### How Django REST Framework Works
@@ -268,6 +337,7 @@ Client Response ← JSON ← Serializer ← View ← Model ← Database
 class User(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True)
     # ... more fields
 ```
 
@@ -280,7 +350,7 @@ class User(models.Model):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'name', 'email']
+        fields = ['id', 'name', 'email', 'is_active']
 ```
 
 #### 3. Views (`users/views.py`)
@@ -320,7 +390,8 @@ The `users` table structure:
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(254) UNIQUE NOT NULL
+    email VARCHAR(254) UNIQUE NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE NOT NULL
 );
 ```
 

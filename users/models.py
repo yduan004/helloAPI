@@ -51,6 +51,13 @@ class User(models.Model):
         help_text="User's email address"
     )
     
+    # Active status - for soft deletes or account suspension
+    # default=True: new users are active by default
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this user is active."
+    )
+    
     class Meta:
         """
         Model Metadata

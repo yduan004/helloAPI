@@ -8,7 +8,8 @@ Quick reference for your simplified User API with 3 fields: `id`, `name`, `email
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(254) UNIQUE NOT NULL
+    email VARCHAR(254) UNIQUE NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE NOT NULL
 );
 ```
 
@@ -26,6 +27,7 @@ GET /api/users/
 
 **Query Parameters:**
 - `search` - Search in name and email fields
+- `is_active` - Filter by active status (true/false)
 - `page` - Page number (default: 1, 10 items per page)
 
 **Example Request:**
@@ -43,12 +45,14 @@ curl http://localhost:8000/api/users/
         {
             "id": 1,
             "name": "John Doe",
-            "email": "john@example.com"
+            "email": "john@example.com",
+            "is_active": true
         },
         {
             "id": 2,
             "name": "Jane Smith",
-            "email": "jane@example.com"
+            "email": "jane@example.com",
+            "is_active": true
         }
     ]
 }
@@ -63,7 +67,8 @@ POST /api/users/
 ```json
 {
     "name": "John Doe",
-    "email": "john@example.com"
+    "email": "john@example.com",
+    "is_active": true
 }
 ```
 
@@ -82,7 +87,8 @@ curl -X POST http://localhost:8000/api/users/ \
 {
     "id": 1,
     "name": "John Doe",
-    "email": "john@example.com"
+    "email": "john@example.com",
+    "is_active": true
 }
 ```
 
@@ -109,7 +115,8 @@ curl http://localhost:8000/api/users/1/
 {
     "id": 1,
     "name": "John Doe",
-    "email": "john@example.com"
+    "email": "john@example.com",
+    "is_active": true
 }
 ```
 
@@ -129,7 +136,8 @@ PUT /api/users/{id}/
 ```json
 {
     "name": "John Doe Updated",
-    "email": "john.updated@example.com"
+    "email": "john.updated@example.com",
+    "is_active": false
 }
 ```
 
@@ -148,7 +156,8 @@ curl -X PUT http://localhost:8000/api/users/1/ \
 {
     "id": 1,
     "name": "John Doe Updated",
-    "email": "john.updated@example.com"
+    "email": "john.updated@example.com",
+    "is_active": false
 }
 ```
 
@@ -176,7 +185,8 @@ curl -X PATCH http://localhost:8000/api/users/1/ \
 {
     "id": 1,
     "name": "Johnny Doe",
-    "email": "john@example.com"
+    "email": "john@example.com",
+    "is_active": true
 }
 ```
 
@@ -203,6 +213,107 @@ GET /api/users/?search={query}
 **Example Request:**
 ```bash
 curl "http://localhost:8000/api/users/?search=john"
+```
+
+### 8. Filter Active Users
+```http
+GET /api/users/?is_active={true|false}
+```
+
+**Example Request:**
+```bash
+curl "http://localhost:8000/api/users/?is_active=true"
+```
+
+**Response:**
+```json
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "is_active": true
+        }
+    ]
+}
+```
+
+### 9. Get All Active Users
+```http
+GET /api/users/active_users/
+```
+
+**Example Request:**
+```bash
+curl http://localhost:8000/api/users/active_users/
+```
+
+**Response:**
+```json
+[
+    {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john@example.com",
+        "is_active": true
+    },
+    {
+        "id": 2,
+        "name": "Jane Smith",
+        "email": "jane@example.com",
+        "is_active": true
+    }
+]
+```
+
+### 10. Activate a User
+```http
+POST /api/users/{id}/activate/
+```
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8000/api/users/1/activate/
+```
+
+**Success Response (200 OK):**
+```json
+{
+    "status": "User activated successfully",
+    "user": {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john@example.com",
+        "is_active": true
+    }
+}
+```
+
+### 11. Deactivate a User
+```http
+POST /api/users/{id}/deactivate/
+```
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:8000/api/users/1/deactivate/
+```
+
+**Success Response (200 OK):**
+```json
+{
+    "status": "User deactivated successfully",
+    "user": {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john@example.com",
+        "is_active": false
+    }
+}
 ```
 
 **Response:**
@@ -241,6 +352,12 @@ curl "http://localhost:8000/api/users/?search=john"
   - Must be unique (no duplicates)
   - Converted to lowercase automatically
 
+### Is Active Field
+- **Type:** Boolean
+- **Required:** No
+- **Default:** `true`
+- **Description:** Indicates whether the user account is active
+
 ## HTTP Status Codes
 
 | Code | Meaning | When |
@@ -267,7 +384,8 @@ print(users)
 # Create a user
 data = {
     "name": "John Doe",
-    "email": "john@example.com"
+    "email": "john@example.com",
+    "is_active": True
 }
 response = requests.post(f"{BASE_URL}/users/", json=data)
 new_user = response.json()
@@ -294,6 +412,22 @@ params = {"search": "john"}
 response = requests.get(f"{BASE_URL}/users/", params=params)
 results = response.json()
 print(results)
+
+# Filter active users
+params = {"is_active": "true"}
+response = requests.get(f"{BASE_URL}/users/", params=params)
+active_users = response.json()
+print(active_users)
+
+# Activate a user
+response = requests.post(f"{BASE_URL}/users/{user_id}/activate/")
+result = response.json()
+print(result['status'])
+
+# Deactivate a user
+response = requests.post(f"{BASE_URL}/users/{user_id}/deactivate/")
+result = response.json()
+print(result['status'])
 ```
 
 ## Testing

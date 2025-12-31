@@ -27,10 +27,19 @@ class UserAdmin(admin.ModelAdmin):
         'id',
         'name',
         'email',
+        'is_active',
     ]
     
     # Fields that are clickable links to the detail page
     list_display_links = ['id', 'name']
+    
+    # Fields that can be edited directly in the list view
+    list_editable = ['is_active']
+    
+    # Filters in the right sidebar
+    list_filter = [
+        'is_active',
+    ]
     
     # Search functionality
     search_fields = [
@@ -52,6 +61,9 @@ class UserAdmin(admin.ModelAdmin):
     fieldsets = (
         ('User Information', {
             'fields': ('id', 'name', 'email')
+        }),
+        ('Status', {
+            'fields': ('is_active',)
         }),
     )
     
