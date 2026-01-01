@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,14 +21,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# TODO: Change this before deploying to production!
-# Generate a new key with: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
-SECRET_KEY = 'django-insecure-n)enhvin8$sfbu1(dlzv^g6&no)fi+kp89!f)iv1toy$ya0c+w'
+# Get from environment variable in production
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-n)enhvin8$sfbu1(dlzv^g6&no)fi+kp89!f)iv1toy$ya0c+w')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS: list[str] = []
+# Parse ALLOWED_HOSTS from environment variable
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
 
 
 # Application definition
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # For static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # CORS middleware - must be before CommonMiddleware
     'django.middleware.common.CommonMiddleware',
@@ -80,16 +82,16 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 # Configuration for PostgreSQL database
-# Make sure your PostgreSQL server is running and the database 'my_database' exists
+# Uses environment variables for production deployment
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',  # PostgreSQL database engine
-        'NAME': 'my_database',                      # Your existing database name
-        'USER': 'postgres',                         # PostgreSQL username (change if different)
-        'PASSWORD': 'postgres',                     # PostgreSQL password (change to your password)
-        'HOST': 'localhost',                        # Database host
-        'PORT': '5432',                             # Default PostgreSQL port
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DATABASE_NAME', 'my_database'),
+        'USER': os.environ.get('DATABASE_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'postgres'),
+        'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
+        'PORT': os.environ.get('DATABASE_PORT', '5432'),
     }
 }
 
@@ -129,6 +131,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# WhiteNoise configuration for serving static files in production
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -167,15 +177,14 @@ REST_FRAMEWORK = {
 # CORS (Cross-Origin Resource Sharing) settings
 # Allows frontend applications from different domains to access this API
 
-# Allow all origins during development (CHANGE THIS IN PRODUCTION!)
-CORS_ALLOW_ALL_ORIGINS = True
-
-# Alternative: Specify allowed origins explicitly (recommended for production)
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",  # React default
-#     "http://localhost:8080",  # Vue default
-#     "http://127.0.0.1:3000",
-# ]
+# Get CORS origins from environment variable
+cors_origins_env = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+if cors_origins_env:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
+    CORS_ALLOW_ALL_ORIGINS = False
+else:
+    # Allow all origins during development only
+    CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Allow credentials (cookies, authorization headers)
 CORS_ALLOW_CREDENTIALS = True
@@ -202,3 +211,18 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+# ============================================================================
+# SECURITY SETTINGS FOR PRODUCTION
+# ============================================================================
+if not DEBUG:
+    # HTTPS/SSL settings
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
