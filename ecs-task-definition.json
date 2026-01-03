@@ -1,15 +1,17 @@
 {
   "family": "helloapi-task",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskRole",
+  "executionRoleArn": "arn:aws:iam::835745295392:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::835745295392:role/ecsTaskRole",
   "containerDefinitions": [
     {
       "name": "helloapi",
-      "image": "YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/helloapi:latest",
+      "image": "835745295392.dkr.ecr.us-east-1.amazonaws.com/helloapi:latest",
       "portMappings": [
         {
           "containerPort": 8000,
@@ -24,44 +26,48 @@
         },
         {
           "name": "ALLOWED_HOSTS",
-          "value": "your-alb-dns-name.region.elb.amazonaws.com,yourdomain.com"
+          "value": "api.helloydz.com,helloapi-alb-1787389471.us-east-1.elb.amazonaws.com"
         },
         {
           "name": "CORS_ALLOWED_ORIGINS",
-          "value": "https://yourdomain.com,https://www.yourdomain.com"
+          "value": "https://api.helloydz.com,http://localhost:3000"
+        },
+        {
+          "name": "SECURE_SSL_REDIRECT",
+          "value": "True"
         }
       ],
       "secrets": [
         {
           "name": "SECRET_KEY",
-          "valueFrom": "arn:aws:secretsmanager:YOUR_REGION:YOUR_ACCOUNT_ID:secret:helloapi/django/SECRET_KEY-XXXXXX"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:835745295392:secret:helloapi/django/SECRET_KEY-Dpx8U8"
         },
         {
           "name": "DATABASE_NAME",
-          "valueFrom": "arn:aws:secretsmanager:YOUR_REGION:YOUR_ACCOUNT_ID:secret:helloapi/db/NAME-XXXXXX"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:835745295392:secret:helloapi/db/NAME-eJoxRQ"
         },
         {
           "name": "DATABASE_USER",
-          "valueFrom": "arn:aws:secretsmanager:YOUR_REGION:YOUR_ACCOUNT_ID:secret:helloapi/db/USER-XXXXXX"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:835745295392:secret:helloapi/db/USER-Hijyir"
         },
         {
           "name": "DATABASE_PASSWORD",
-          "valueFrom": "arn:aws:secretsmanager:YOUR_REGION:YOUR_ACCOUNT_ID:secret:helloapi/db/PASSWORD-XXXXXX"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:835745295392:secret:helloapi/db/PASSWORD-ndiGf2"
         },
         {
           "name": "DATABASE_HOST",
-          "valueFrom": "arn:aws:secretsmanager:YOUR_REGION:YOUR_ACCOUNT_ID:secret:helloapi/db/HOST-XXXXXX"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:835745295392:secret:helloapi/db/HOST-wHameG"
         },
         {
           "name": "DATABASE_PORT",
-          "valueFrom": "arn:aws:secretsmanager:YOUR_REGION:YOUR_ACCOUNT_ID:secret:helloapi/db/PORT-XXXXXX"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:835745295392:secret:helloapi/db/PORT-YpQ0CF"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/helloapi",
-          "awslogs-region": "YOUR_REGION",
+          "awslogs-region": "us-east-1",
           "awslogs-stream-prefix": "ecs"
         }
       },
@@ -78,4 +84,3 @@
     }
   ]
 }
-
