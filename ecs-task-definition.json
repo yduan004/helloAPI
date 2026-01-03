@@ -26,7 +26,7 @@
         },
         {
           "name": "ALLOWED_HOSTS",
-          "value": "api.helloydz.com,helloapi-alb-1787389471.us-east-1.elb.amazonaws.com"
+          "value": "api.helloydz.com,helloapi-alb-1787389471.us-east-1.elb.amazonaws.com,localhost,127.0.0.1"
         },
         {
           "name": "CORS_ALLOWED_ORIGINS",
@@ -34,7 +34,7 @@
         },
         {
           "name": "SECURE_SSL_REDIRECT",
-          "value": "True"
+          "value": "False"
         }
       ],
       "secrets": [

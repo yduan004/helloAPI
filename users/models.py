@@ -67,9 +67,9 @@ class User(models.Model):
         # This maps to your existing 'users' table
         db_table = 'users'
         
-        # managed = True tells Django to create/modify/delete this table
-        # Set to True to let Django fully manage the table schema
-        managed = True
+        # managed = False tells Django NOT to create/modify/delete this table
+        # Set to False because the table already exists in your database
+        managed = False
         
         # Default ordering for queries (by id)
         ordering = ['id']
