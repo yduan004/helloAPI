@@ -1,28 +1,34 @@
+# Python
 __pycache__
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*.so
 .Python
+
+# Virtual environments
 env/
 venv/
 .venv/
+
+# Django
 *.log
+db.sqlite3
+staticfiles/
+
+# Development
 .git
-.gitignore
-.dockerignore
 .env
 .vscode/
 .idea/
-*.sqlite3
-db.sqlite3
+.DS_Store
 *.md
 !README.md
-.DS_Store
-node_modules/
+
+# Testing
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Build
 dist/
 build/
 *.egg-info/
-
