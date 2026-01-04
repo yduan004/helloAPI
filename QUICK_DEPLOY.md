@@ -348,26 +348,34 @@ aws elbv2 delete-target-group --target-group-arn $TG_ARN --region $AWS_REGION
 # Delete RDS
 aws rds delete-db-instance --db-instance-identifier ${PROJECT_NAME}-db --skip-final-snapshot --region $AWS_REGION
 
+# Delete RDS DB Subnet Group (wait for RDS to be deleted first)
+aws rds wait db-instance-deleted --db-instance-identifier ${PROJECT_NAME}-db --region $AWS_REGION
+aws rds delete-db-subnet-group --db-subnet-group-name ${PROJECT_NAME}-db-subnet --region $AWS_REGION
+
 # Delete ECR repository
 aws ecr delete-repository --repository-name $PROJECT_NAME --force --region $AWS_REGION
 
 # Delete secrets
-for secret in SECRET_KEY NAME USER PASSWORD HOST PORT; do
-    aws secretsmanager delete-secret --secret-id ${PROJECT_NAME}/django/SECRET_KEY --force-delete-without-recovery --region $AWS_REGION 2>/dev/null
+aws secretsmanager delete-secret --secret-id ${PROJECT_NAME}/django/SECRET_KEY --force-delete-without-recovery --region $AWS_REGION 2>/dev/null
+for secret in NAME USER PASSWORD HOST PORT; do
     aws secretsmanager delete-secret --secret-id ${PROJECT_NAME}/db/$secret --force-delete-without-recovery --region $AWS_REGION 2>/dev/null
 done
 
+# Delete CloudWatch log group
+aws logs delete-log-group --log-group-name /ecs/${PROJECT_NAME} --region $AWS_REGION 2>/dev/null
+
 # Delete security groups (wait a few minutes for resources to be deleted first)
-aws ec2 delete-security-group --group-id $ECS_SG --region $AWS_REGION
-aws ec2 delete-security-group --group-id $ALB_SG --region $AWS_REGION
-aws ec2 delete-security-group --group-id $RDS_SG --region $AWS_REGION
+sleep 60  # Wait for resources to be fully deleted
+aws ec2 delete-security-group --group-id $ECS_SG --region $AWS_REGION 2>/dev/null
+aws ec2 delete-security-group --group-id $ALB_SG --region $AWS_REGION 2>/dev/null
+aws ec2 delete-security-group --group-id $RDS_SG --region $AWS_REGION 2>/dev/null
 
 # Delete IAM resources
-aws iam detach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-aws iam detach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/ecsSecretsPolicy
-aws iam delete-policy --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/ecsSecretsPolicy
-aws iam delete-role --role-name ecsTaskExecutionRole
-aws iam delete-role --role-name ecsTaskRole
+aws iam detach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy 2>/dev/null
+aws iam detach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/ecsSecretsManagerPolicy 2>/dev/null
+aws iam delete-policy --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/ecsSecretsManagerPolicy 2>/dev/null
+aws iam delete-role --role-name ecsTaskExecutionRole 2>/dev/null
+aws iam delete-role --role-name ecsTaskRole 2>/dev/null
 ```
 
 ## Monitoring
