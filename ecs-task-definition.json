@@ -30,7 +30,7 @@
         },
         {
           "name": "CORS_ALLOWED_ORIGINS",
-          "value": "https://api.helloydz.com,http://localhost:3000"
+          "value": "https://helloydz.com,http://localhost:3000"
         }
       ],
       "secrets": [
