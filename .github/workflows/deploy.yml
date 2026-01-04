@@ -1,0 +1,81 @@
+name: Deploy to AWS ECS
+
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch: # Allows manual trigger
+
+env:
+    AWS_REGION: us-east-1
+    ECR_REPOSITORY: helloapi
+    ECS_CLUSTER: helloapi-cluster
+    ECS_SERVICE: helloapi-service
+    ECS_TASK_DEFINITION: ecs-task-definition.json
+    CONTAINER_NAME: helloapi
+
+jobs:
+    deploy:
+        name: Deploy to ECS
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Build, tag, and push image to Amazon ECR
+              id: build-image
+              env:
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                  IMAGE_TAG: ${{ github.sha }}
+              run: |
+                  # Build Docker image for AMD64 platform (required for Fargate)
+                  docker buildx create --use
+                  docker buildx build \
+                    --platform linux/amd64 \
+                    -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+                    -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+                    --push \
+                    .
+                  echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+            - name: Fill in the new image ID in the Amazon ECS task definition
+              id: task-def
+              uses: aws-actions/amazon-ecs-render-task-definition@v1
+              with:
+                  task-definition: ${{ env.ECS_TASK_DEFINITION }}
+                  container-name: ${{ env.CONTAINER_NAME }}
+                  image: ${{ steps.build-image.outputs.image }}
+
+            - name: Deploy Amazon ECS task definition
+              uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+              with:
+                  task-definition: ${{ steps.task-def.outputs.task-definition }}
+                  service: ${{ env.ECS_SERVICE }}
+                  cluster: ${{ env.ECS_CLUSTER }}
+                  wait-for-service-stability: true
+
+            - name: Deployment summary
+              if: success()
+              run: |
+                  echo "✅ Deployment successful!"
+                  echo "🚀 Image: ${{ steps.build-image.outputs.image }}"
+                  echo "🌐 API URL: https://api.helloydz.com"
+                  echo "📊 Check status: https://console.aws.amazon.com/ecs/v2/clusters/${{ env.ECS_CLUSTER }}/services/${{ env.ECS_SERVICE }}"
+
+            - name: Notify on failure
+              if: failure()
+              run: |
+                  echo "❌ Deployment failed!"
+                  echo "Check the logs above for details"
