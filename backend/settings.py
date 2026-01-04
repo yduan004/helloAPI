@@ -61,6 +61,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'backend.urls'
 
+# Minimal templates for admin interface
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -68,7 +69,6 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -96,22 +96,9 @@ DATABASES = {
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
+# Password validation (only for admin users)
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
 ]
 
 
@@ -148,69 +135,25 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ============================================================================
 # REST FRAMEWORK CONFIGURATION
 # ============================================================================
-# Django REST Framework settings for API configuration
 REST_FRAMEWORK = {
-    # Default permission classes - currently allows any access
-    # In production, you might want to add authentication
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
-    # Pagination settings - limits results per page
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,  # Number of items per page
-    # Parser classes - handles JSON and form data
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',
-    ],
-    # Renderer classes - formats the response
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',  # Provides web UI for testing
-    ],
+    'PAGE_SIZE': 10,
 }
 
 # ============================================================================
 # CORS CONFIGURATION
 # ============================================================================
-# CORS (Cross-Origin Resource Sharing) settings
-# Allows frontend applications from different domains to access this API
-
 # Get CORS origins from environment variable
 cors_origins_env = os.environ.get('CORS_ALLOWED_ORIGINS', '')
 if cors_origins_env:
     CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
-    CORS_ALLOW_ALL_ORIGINS = False
 else:
-    # Allow all origins during development only
-    CORS_ALLOW_ALL_ORIGINS = DEBUG
+    CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all in development only
 
-# Allow credentials (cookies, authorization headers)
 CORS_ALLOW_CREDENTIALS = True
-
-# Allowed HTTP methods
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-
-# Allowed headers
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
 
 # ============================================================================
 # SECURITY SETTINGS FOR PRODUCTION
@@ -219,15 +162,9 @@ if not DEBUG:
     # Trust X-Forwarded-Proto header from ALB
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     
-    # HTTPS/SSL settings - can be disabled via environment variable
-    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'True') == 'True'
-    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True') == 'True'
-    CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'True') == 'True'
+    # Security headers
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
-    # Disable HSTS for testing without HTTPS
-    if SECURE_SSL_REDIRECT:
-        SECURE_HSTS_SECONDS = 31536000
-        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-        SECURE_HSTS_PRELOAD = True
